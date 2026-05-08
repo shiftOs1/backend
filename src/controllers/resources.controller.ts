@@ -6,6 +6,7 @@ import { LeaveRequest } from '../models/LeaveRequest';
 import { Notification } from '../models/Notification';
 import { notificationService } from '../services/notification.service';
 import { NotFoundError, AppError } from '../utils/errors';
+import { param } from '../utils/helpers';
 
 // ── AVAILABILITY ──────────────────────────────────────────────────────────────
 
@@ -193,6 +194,6 @@ export const markAllNotificationsRead = async (req: AuthRequest, res: Response) 
 };
 
 export const markNotificationRead = async (req: AuthRequest, res: Response) => {
-  await notificationService.markOneRead(req.params.id, req.user!.userId);
+  await notificationService.markOneRead(param(req.params.id), req.user!.userId);
   res.status(200).json({ success: true, message: 'Notification marked as read' });
 };

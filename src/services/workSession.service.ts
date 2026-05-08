@@ -1,9 +1,10 @@
-import { WorkSession } from '../models/WorkSession';
+import { WorkSession, IWorkSession } from '../models/WorkSession';
 import { notificationService } from './notification.service';
 import { conflictService } from './conflict.service';
 import { AppError, NotFoundError } from '../utils/errors';
+import mongoose from 'mongoose';
 
-const OVERTIME_THRESHOLD_MINUTES = 8 * 60; // 8 hours
+const OVERTIME_THRESHOLD_MINUTES = 8 * 60;
 
 export class WorkSessionService {
   async clockIn(userId: string, shiftId?: string) {
@@ -11,8 +12,8 @@ export class WorkSessionService {
     if (active) throw new AppError('You already have an active work session. Clock out first.', 409);
 
     const session = await WorkSession.create({
-      user: userId,
-      shift: shiftId || null,
+      user: new mongoose.Types.ObjectId(userId),
+      shift: shiftId ? new mongoose.Types.ObjectId(shiftId) : undefined,
       clockIn: new Date(),
       status: 'active',
     });
@@ -68,7 +69,7 @@ export class WorkSessionService {
     }
 
     session.status = 'approved';
-    session.approvedBy = adminId as any;
+    session.approvedBy = new mongoose.Types.ObjectId(adminId) as any;
     session.approvedAt = new Date();
     if (comment) session.adminComment = comment;
     await session.save();
@@ -89,7 +90,7 @@ export class WorkSessionService {
     if (!session) throw new NotFoundError('Session not found');
 
     session.status = 'rejected';
-    session.approvedBy = adminId as any;
+    session.approvedBy = new mongoose.Types.ObjectId(adminId) as any;
     session.approvedAt = new Date();
     session.adminComment = comment;
     await session.save();
@@ -106,7 +107,9 @@ export class WorkSessionService {
   }
 
   async getAllSessions(page = 1, limit = 20, status?: string) {
-    const filter = status ? { status } : {};
+    const filter: Record<string, unknown> = {};
+    if (status) filter.status = status as IWorkSession['status'];
+
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       WorkSession.find(filter)
