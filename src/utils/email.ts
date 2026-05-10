@@ -1,16 +1,8 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { env } from '../config/env';
 import { logger } from './logger';
 
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
-  port: env.SMTP_PORT,
-  secure: env.SMTP_PORT === 465,
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-  },
-});
+const resend = new Resend(env.RESEND_API_KEY);
 
 interface SendEmailOptions {
   to: string;
@@ -20,7 +12,7 @@ interface SendEmailOptions {
 
 export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
   try {
-    await transporter.sendMail({
+    await resend.emails.send({
       from: env.EMAIL_FROM,
       to: options.to,
       subject: options.subject,
@@ -32,8 +24,6 @@ export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
     throw new Error('Email could not be sent');
   }
 };
-
-// ── Email templates ────────────────────────────────────────────────────────────
 
 export const sendVerificationEmail = async (
   to: string,
@@ -79,7 +69,7 @@ export const sendPasswordResetEmail = async (
         </a>
         <p style="font-size:12px;color:#999">Or copy this link: ${resetUrl}</p>
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
-        <p style="font-size:12px;color:#bbb">If you didn't request this, please ignore this email. Your password will remain unchanged.</p>
+        <p style="font-size:12px;color:#bbb">If you didn't request this, please ignore this email.</p>
       </div>
     `,
   });

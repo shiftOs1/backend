@@ -14,6 +14,7 @@ import { verifyToken, adminOnly } from './middleware/auth.middleware';
 
 import authRoutes from './routes/auth.routes';
 import apiRoutes from './routes/api.routes';
+import userRoutes from './routes/user.routes';
 
 import {
   getSummary, getHoursOverTime, getUserHours,
@@ -23,11 +24,25 @@ import {
 const app = express();
 
 app.use(helmet());
+
+// Allow multiple origins
+const allowedOrigins = [
+  env.CLIENT_URL,
+  'http://localhost:3000',
+  'https://frontend-eta-eosin-raimyo6ozp.vercel.app',
+];
+
 app.use(cors({
-  origin: env.CLIENT_URL,
-  credentials: true,  
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
 }));
 
 const limiter = rateLimit({
@@ -68,6 +83,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/api/analytics/summary',    verifyToken, adminOnly, getSummary);
 app.get('/api/analytics/hours',      verifyToken, adminOnly, getHoursOverTime);

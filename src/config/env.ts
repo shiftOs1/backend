@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const envSchema = z.object({
-  PORT: z.string().default('5000'),
+  PORT: z.string().default('5001'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
@@ -16,11 +16,8 @@ const envSchema = z.object({
 
   COOKIE_SECRET: z.string().min(16, 'COOKIE_SECRET must be at least 16 characters'),
 
-  SMTP_HOST: z.string().default('smtp.gmail.com'),
-  SMTP_PORT: z.string().default('587'),
-  SMTP_USER: z.string().default(''),
-  SMTP_PASS: z.string().default(''),
-  EMAIL_FROM: z.string().default('ShiftOS <no-reply@shiftos.app>'),
+  RESEND_API_KEY: z.string().default(''),
+  EMAIL_FROM: z.string().default('ShiftOS <onboarding@resend.dev>'),
 
   CLIENT_URL: z.string().default('http://localhost:3000'),
 
@@ -39,7 +36,6 @@ if (!_env.success) {
 export const env = {
   ..._env.data,
   PORT: parseInt(_env.data.PORT, 10),
-  SMTP_PORT: parseInt(_env.data.SMTP_PORT, 10),
   RATE_LIMIT_WINDOW_MS: parseInt(_env.data.RATE_LIMIT_WINDOW_MS, 10),
   RATE_LIMIT_MAX: parseInt(_env.data.RATE_LIMIT_MAX, 10),
   IS_PRODUCTION: _env.data.NODE_ENV === 'production',

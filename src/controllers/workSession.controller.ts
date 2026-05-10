@@ -36,13 +36,21 @@ export const getAllSessions = async (req: AuthRequest, res: Response) => {
 };
 
 export const approveSession = async (req: AuthRequest, res: Response) => {
-  const comment = req.body.comment as string | undefined;
-  const session = await workSessionService.approveSession(param(req.params.id), req.user!.userId, comment);
+  const comment = req.body?.comment as string | undefined;
+  const session = await workSessionService.approveSession(
+    param(req.params.id),
+    req.user!.userId,
+    comment
+  );
   res.status(200).json({ success: true, message: 'Session approved', data: { session } });
 };
 
 export const rejectSession = async (req: AuthRequest, res: Response) => {
-  const comment = req.body.comment as string;
-  const session = await workSessionService.rejectSession(param(req.params.id), req.user!.userId, comment);
+  const comment = (req.body?.comment as string) || 'Session rejected by admin';
+  const session = await workSessionService.rejectSession(
+    param(req.params.id),
+    req.user!.userId,
+    comment
+  );
   res.status(200).json({ success: true, message: 'Session rejected', data: { session } });
 };
