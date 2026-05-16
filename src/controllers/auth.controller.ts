@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { authService } from '../services/auth.service';
+import { User } from '../models/User';
+import { UnauthorizedError } from '../utils/errors';
 import { refreshCookieOptions } from '../utils/jwt';
 import { AuthRequest } from '../types';
 import type {
@@ -96,5 +98,24 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
     success: true,
     message: 'User profile retrieved',
     data: { user },
+  });
+};
+
+export const changePassword = async (req: AuthRequest, res: Response): Promise<void> => {
+  const { currentPassword, newPassword } = req.body;
+
+  const user = await User.findById(req.user!.userId).select('+password');
+  if (!user) throw new UnauthorizedError('User not found');
+
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) throw new UnauthorizedError('Current password is incorrect');
+
+  user.password = newPassword;
+  user.refreshToken = undefined;
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Password changed successfully',
   });
 };

@@ -1,0 +1,46 @@
+{
+  "family": "shiftos-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::878598436771:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "shiftos-backend",
+      "image": "878598436771.dkr.ecr.eu-central-1.amazonaws.com/shiftos-backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 5001,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "PORT", "value": "5001" },
+        { "name": "JWT_ACCESS_EXPIRES_IN", "value": "15m" },
+        { "name": "JWT_REFRESH_EXPIRES_IN", "value": "7d" },
+        { "name": "RATE_LIMIT_WINDOW_MS", "value": "900000" },
+        { "name": "RATE_LIMIT_MAX", "value": "100" }
+      ],
+      "secrets": [
+        { "name": "MONGODB_URI", "valueFrom": "arn:aws:ssm:eu-central-1:878598436771:parameter/shiftos/MONGODB_URI" },
+        { "name": "JWT_ACCESS_SECRET", "valueFrom": "arn:aws:ssm:eu-central-1:878598436771:parameter/shiftos/JWT_ACCESS_SECRET" },
+        { "name": "JWT_REFRESH_SECRET", "valueFrom": "arn:aws:ssm:eu-central-1:878598436771:parameter/shiftos/JWT_REFRESH_SECRET" },
+        { "name": "COOKIE_SECRET", "valueFrom": "arn:aws:ssm:eu-central-1:878598436771:parameter/shiftos/COOKIE_SECRET" },
+        { "name": "CLIENT_URL", "valueFrom": "arn:aws:ssm:eu-central-1:878598436771:parameter/shiftos/CLIENT_URL" },
+        { "name": "RESEND_API_KEY", "valueFrom": "arn:aws:ssm:eu-central-1:878598436771:parameter/shiftos/RESEND_API_KEY" },
+        { "name": "EMAIL_FROM", "valueFrom": "arn:aws:ssm:eu-central-1:878598436771:parameter/shiftos/EMAIL_FROM" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/shiftos-backend",
+          "awslogs-region": "eu-central-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "essential": true
+    }
+  ]
+}
