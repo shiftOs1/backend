@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { authService } from '../services/auth.service';
+import { refreshCookieOptions, generateTokenPair } from '../utils/jwt';
+import { AuthRequest } from '../types';
 import { User } from '../models/User';
 import { UnauthorizedError } from '../utils/errors';
-import { refreshCookieOptions } from '../utils/jwt';
-import { AuthRequest } from '../types';
 import type {
   RegisterInput,
   LoginInput,
@@ -13,7 +13,6 @@ import type {
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   const user = await authService.register(req.body as RegisterInput);
-
   res.status(201).json({
     success: true,
     message: 'Account created. Please check your email to verify your account.',
@@ -22,13 +21,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
-  const { accessToken, refreshToken, user } = await authService.login(
-    req.body as LoginInput
-  );
-
-  // Refresh token → httpOnly cookie
+  const { accessToken, refreshToken, user } = await authService.login(req.body as LoginInput);
   res.cookie('refreshToken', refreshToken, refreshCookieOptions);
-
   res.status(200).json({
     success: true,
     message: 'Login successful',
@@ -40,21 +34,14 @@ export const logout = async (req: AuthRequest, res: Response): Promise<void> => 
   if (req.user?.userId) {
     await authService.logout(req.user.userId);
   }
-
   res.clearCookie('refreshToken', { path: '/api/auth' });
-
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully',
-  });
+  res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 
 export const refresh = async (req: Request, res: Response): Promise<void> => {
   const incomingToken = req.cookies?.refreshToken as string;
   const { accessToken, refreshToken } = await authService.refresh(incomingToken);
-
   res.cookie('refreshToken', refreshToken, refreshCookieOptions);
-
   res.status(200).json({
     success: true,
     message: 'Token refreshed',
@@ -64,7 +51,6 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
 
 export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
   const user = await authService.verifyEmail(req.body.token as string);
-
   res.status(200).json({
     success: true,
     message: 'Email verified successfully. You can now log in.',
@@ -74,8 +60,6 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
 
 export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
   await authService.forgotPassword(req.body as ForgotPasswordInput);
-
-  // Generic response to prevent email enumeration
   res.status(200).json({
     success: true,
     message: 'If an account with that email exists, a reset link has been sent.',
@@ -84,7 +68,6 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
   await authService.resetPassword(req.body as ResetPasswordInput);
-
   res.status(200).json({
     success: true,
     message: 'Password reset successfully. You can now log in with your new password.',
@@ -93,7 +76,6 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 
 export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   const user = await authService.getMe(req.user!.userId);
-
   res.status(200).json({
     success: true,
     message: 'User profile retrieved',
@@ -110,12 +92,25 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
   const isMatch = await user.comparePassword(currentPassword);
   if (!isMatch) throw new UnauthorizedError('Current password is incorrect');
 
+  // Update password
   user.password = newPassword;
-  user.refreshToken = undefined;
+
+  // Issue new token pair so session stays alive
+  const payload = {
+    userId: user._id.toString(),
+    role: user.role,
+    email: user.email,
+  };
+  const { accessToken, refreshToken } = generateTokenPair(payload);
+  user.refreshToken = refreshToken;
   await user.save();
+
+  // Set new refresh token cookie
+  res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
   res.status(200).json({
     success: true,
     message: 'Password changed successfully',
+    data: { accessToken },
   });
 };
